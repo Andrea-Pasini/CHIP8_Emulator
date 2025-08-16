@@ -44,14 +44,12 @@ typedef struct stack_struct
 // part of instruction for "from_inst"
 typedef enum 
 {
-    F         ,
-    X         ,
-    Y         ,   
-    N         ,
-    NN        ,
-    NNN       ,
-}   inst_part ; 
+    F    , X    , Y    ,   
+    N    , NN   , NNN       
+}   inst_part          ; 
 
+// defines a type for opcode function pointers
+typedef void (*opcode_t) ( uint16_t , uint16_t , uint16_t , uint16_t , uint16_t , uint16_t ) ;
 
 /**************************************************************/
 /**********************| PROTOTYPES |**************************/
@@ -69,8 +67,10 @@ void     load_font  ( void                          ) ;
 void     load_rom   ( char* path                    ) ;
 
 // pipeline prototypes
-uint16_t fetch      ( void                          ) ; 
+uint16_t if_st      ( void                          ) ; 
+void     load_opc   ( void                          ) ;
 uint8_t  from_inst  ( uint16_t inst , inst_part ind ) ;
+void     id_exe_st  ( uint16_t inst                 ) ;
 
 
 
@@ -86,6 +86,14 @@ uint8_t SND_TIMER       ;
 uint8_t DEL_TIMER       ;
 uint8_t RAM[ RAM_SIZE ] ;
 uint8_t REG[ REG_NUM  ] ;
+
+// opcode tables ( needed to discriminate between different instructions )
+opcode_t OPCXX[  16 ]   ;
+opcode_t OPC0X[ 0xE ]   ;
+opcode_t OPC8X[ 0xE ]   ;
+opcode_t OPCEX[ 0xE ]   ;
+opcode_t OPCFX[ 0xE ]   ;
+opcode_t OPCF5[ 0x3 ]   ;
 
 
 /*********************************************************/
@@ -189,20 +197,12 @@ void load_rom( char* path )
 /**********************|  PIPELINE FUNCTIONS  |**************************/
 
 // reads 2 bytes from memory and returns them as a 16-BIT number
-uint16_t fetch( void ) ; 
+uint16_t if_st( void ) ; 
 {
     uint16_t instruction = ( RAM[ PC++ ] << 8 ) + [ RAM[ PC++ ] ] ; 
     return   instruction                                          ; 
 }
 
-/* 
-
-    For the decode stage of the pipeline i first need to learn about function
-    pointers, in order to create tidier looking code. My idea is to create an
-    array-of-arrays in which the i can identify the first nibble and then 
-    recognize the opcode ( more on this later )
-
-*/
 
 // extracts a specified part of the instruction
 uint16_t from_inst( uint16_t inst , inst_part ind )
@@ -246,8 +246,76 @@ uint16_t from_inst( uint16_t inst , inst_part ind )
     return value                  ;
 }
 
-void decode( uint16_t inst ) 
+
+/*
+
+    In order to decode instructions the program will read the first half-byte
+    of the instruction, triggering the execution of a function which will then
+    do one of two things:
+
+        - If the first half-byte isn't shared by more than one opcode
+          it will execute the requested instruction
+        
+        - If the half-byte is shared by different opcodes it will 
+          discriminate between those using other function tables
+    
+    This approach has been chosen in order not to write excessively long switch
+    statements and thus keep the code clean and readable.
+
+*/
+
+
+// loads the opcodes into their destined array (done in function to keep the code tidy)
+void load_opc( void )
 {
-    uint16_t F = from_inst( inst , F ) , X  = from_inst( inst , X  ) , Y   = from_inst( inst , Y   ) ;
-    uint16_t N = from_inst( inst , N ) , NN = from_inst( inst , NN ) , NNN = from_inst( inst , NNN ) ;
+    // separates the opcodes by starting half-byte
+    OPCXX[0x0] = OPC_0 ; OPCXX[0x1] = OPC_1 ; OPCXX[0x2] = OPC_2 ; OPCXX[0x3] = OPC_3 ;
+    OPCXX[0x4] = OPC_4 ; OPCXX[0x5] = OPC_5 ; OPCXX[0x6] = OPC_6 ; OPCXX[0x7] = OPC_7 ;
+    OPCXX[0x8] = OPC_8 ; OPCXX[0x9] = OPC_9 ; OPCXX[0xA] = OPC_A ; OPCXX[0xB] = OPC_B ;
+    OPCXX[0xC] = OPC_C ; OPCXX[0xD] = OPC_D ; OPCXX[0xE] = OPC_E ; OPCXX[0xF] = OPC_F ; 
+    
+    // loads the opcodes starting with the half-byte "0"
+    OPC0X[0x0] = OPC0_0 ; OPC0X[0x1] = OPC0_1 ;
+
+    // loads the opcodes starting with the half-byte "8"
+    OPC8X[0x0] = OPC8_0 ; OPC8X[0x1] = OPC8_1 ; OPC8X[0x2] = OPC8_2 ; 
+    OPC8X[0x3] = OPC8_3 ; OPC8X[0x4] = OPC8_4 ; OPC8X[0x5] = OPC8_5 ; 
+    OPC8X[0x6] = OPC8_6 ; OPC8X[0x7] = OPC8_7 ; OPC8X[0xE] = OPC8_E ; 
+
+    // loads the opcodes starting with the half-byte "E"
+    OPCEX[0x1] = OPCE_1 ; OPCEX[0xE] = OPCE_E ;
+
+    // loads or separates the opcodes starting with the half-byte "F"
+    OPCFX[0x3] = OPCF_3 ; OPCFX[0x5] = OPCF_5 ; OPCFX[0x7] = OPCF_7 ; 
+    OPCFX[0x8] = OPCF_8 ; OPCFX[0x9] = OPCF_9 ; OPCFX[0xA] = OPCF_A ;
+    OPCFX[0xE] = OPCF_E ;   
+
+    // loads the opcodes starting with "F" and ending with "5"
+    OPCF5[0x1] = OPCF5_1 ; OPCF5[0x5] = OPCF5_5 ; OPCF5[0x6] = OPCF5_6 ; 
+
+    return ;
+
 }
+
+// decodes the instruction and executes it
+void id_exe_st( uint16_t inst ) 
+{
+    // breaks the instruction in half bytes (and bigger parts needed by certain instructions)
+    uint16_t F_HB  = from_inst( inst , F )  , X_HB   = from_inst( inst , X   ) ;
+    uint16_t Y_HB  = from_inst( inst , Y )  , N_HB   = from_inst( inst , N   ) ; 
+    uint16_t NN_HB = from_inst( inst , NN ) , NNN_HB = from_inst( inst , NNN ) ;
+
+    // redirections the execution of the instruction to other functions
+    OPCXX[ F_HB ]( F_HB , X_HB , Y_HB , N_HB , NN_HB , NNN_HB )                ; 
+}
+
+
+/****************************************************************************/
+/**********************|  OPCODES & INSTRUCTIONS  |**************************/
+
+/*
+
+    TO-DO: implementation of every instruction 
+           (at least the CPU related ones)
+
+*/

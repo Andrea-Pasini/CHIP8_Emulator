@@ -30,7 +30,8 @@
 
 // macros: display
 #define SCR_W    64
-#define SCR_H   32
+#define SCR_H    32
+#define CLR_DSP  "\033[2J\033[H" 
 #define ON       1
 #define OFF      0
 
@@ -42,9 +43,9 @@
 // custom types
 typedef struct stack_struct
 {
-    uint8_t sp                ;
-    uint8_t cells[ STK_SIZE ] ;
-}   stack_t                   ;
+    uint8_t  sp                ;
+    uint16_t cells[ STK_SIZE ] ;
+}   stack_t                    ;
 
 // part of instruction for "from_inst"
 typedef enum 
@@ -66,8 +67,8 @@ typedef scr_row_t display_t[ SCR_H ] ;
 // stack functions prototypes
 int8_t   stack_empty( void                          ) ;
 void     stack_init ( void                          ) ;
-void     stack_push ( uint8_t val                   ) ; 
-uint8_t  stack_pop  ( void                          ) ;
+void     stack_push ( uint16_t val                  ) ; 
+uint16_t stack_pop  ( void                          ) ;
 
 // RAM functions prototype
 void     ram_init   ( void                          ) ;
@@ -80,6 +81,27 @@ void     load_opc   ( void                          ) ;
 uint8_t  from_inst  ( uint16_t inst , inst_part ind ) ;
 void     id_exe_st  ( uint16_t inst                 ) ;
 
+// opcode prototypes
+void OPC_0( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
+void OPC_8( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
+void OPC_E( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
+void OPC_F( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
+void OPC_1( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
+void OPC_2( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
+void OPC_6( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
+void OPC_6( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
+void OPC_A( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
+void OPC_D( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
+
+// redirected opcodes prototypes
+void OPCF_5( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB ) ;
+void OPC0_0( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB ) ;
+void OPC0_E( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB ) ;
+
+// CLI prototypes
+void draw( void ) ;
+
+
 
 
 
@@ -89,11 +111,12 @@ void     id_exe_st  ( uint16_t inst                 ) ;
 
 // hardware components ( as global variables )
 stack_t   STK             ;
-uint8_t   PC              ;
+uint16_t  PC              ;
 uint8_t   SND_TIMER       ;
 uint8_t   DEL_TIMER       ;
 uint8_t   RAM[ RAM_SIZE ] ;
 uint8_t   REG[ REG_NUM  ] ;
+uint16_t  I_REG           ;
 display_t DSP             ;
 
 // opcode tables ( needed to discriminate between different instructions )
@@ -371,8 +394,124 @@ void OPCF_5( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uin
 
 */
 
+
+// clears the screen
 void OPC0_0( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
     for ( int i = 0 ; i < SCR_H ; i++ ) memset( DSP[ i ] , 0x00 , SCR_W ) ;
     return                                                                ;
 }
+
+
+// returns from a subroutine
+void OPC0_E( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    PC = stack_pop( ) ;
+    return            ; 
+}
+
+
+// jumps to the NNN address
+void OPC_1( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    PC = NNN_HB ;
+    return      ;
+}
+
+
+// jumps to the NNN location and saves the return address on top of the stack
+void OPC_2( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    stack_push( PC ) ;
+    PC = NNN_HB      ;
+    return           ;
+}
+
+
+// stores NN into the X register
+void OPC_6( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    REG[ X_HB ] = NN_HB ;
+    return              ;
+}
+
+
+// adds NN to the X register
+void OPC_6( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    REG[ X_HB ] += NN_HB ;
+    return               ;
+}
+
+
+// sets the I_REG to NNN
+void OPC_A( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    I_REG = NNN_HB ;
+    return         ;
+}
+
+
+// implements a pixel-by-pixel xor between N bytes starting from the I_REG value and the display's pixels
+void OPC_D( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    // resets the collision flag 
+    REG[ 0xF ] = 0 ;
+    
+    // gets the X (0-63) and the Y (0-31) coordinates to start drawing the sprite
+    uint8_t spr_x = REG[ X_HB ] % SCR_W ;
+    uint8_t spr_y = REG[ Y_HB ] % SCR_H ;
+    uint8_t bit , drw_x , drw_y         ;
+
+    // for every byte that needs to be drawn
+    for( int spr_row = 0 ; spr_row < N_HB ; spr_row++ )
+    {
+        // loads the byte into a buffer
+        uint8_t buffer = RAM[ I_REG + spr_row ] ;
+
+        // for every bit in the buffer, starting from the MSB
+        for( int bit_n = 7 ; bit_n >= 8 ; bit_n-- )
+        {
+            // calculates the coordinates
+            bit   = ( buffer & ( 1 << bit_n ) ) >> bit_n ;
+            drw_x = ( spr_x  +   bit_n        )  % SCR_W ;
+            drw_y = ( spr_y  +   spr_row      )  % SCR_H ;
+            
+            // updates the collision flag
+            if ( ( DSP[ drw_y ][ drw_x ] ) && ( bit ) ) REG[ 0xF ] = 1 ;
+
+            // updates the pixel's colour
+            DSP[ drw_y ][ drw_x ] ^= bit ;
+        }
+    }
+
+    // draws the updted display
+    draw( ) ; 
+}
+
+
+
+/**************************************************************************/
+/**********************|  GRAPHICS (TEMPORARY)  |**************************/
+
+
+// draws the display in the command line
+void draw( void )
+{
+    // clears the display
+    printf( CLR_DSP ) ;
+
+    // for every row
+    for( int row = 0 ; row < SCR_H ; row++ )
+    {
+        // draws the row and goes to the next one
+        for( int col = 0 ; col < SCR_W ; col++ )
+        {
+            if ( DSP[ row ][ col ] == ON ) printf( "#" ) ;
+            else                           printf( " " ) ;
+        }
+        printf( "\n" ) ;
+    }
+}
+
+

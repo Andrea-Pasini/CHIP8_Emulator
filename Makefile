@@ -2,7 +2,7 @@
 CC 		:= gcc
 
 # gcc flags
-CFLAGS  := -Wall -Wextar -std=c11 -g3 -I includes
+CFLAGS  := -Wall -Wextra -std=c11 -g3 -Iincludes
 
 # linking flags
 LDFLAGS := -l SDL2
@@ -13,10 +13,10 @@ OBJ_DIR := build/obj
 BIN_DIR := build
 
 # source code files ( every .c file in source directory )
-SRCS 	:= $(wildcard $(SRC_DIR)/*.c)) 
+SRCS 	:= $(wildcard $(SRC_DIR)/*.c) 
 
 # object files ( one from every source file )
-OBJS	:= $(SRCS:$(SRC_DIR)/%.c = $(OBJ_DIR)/%.o)
+OBJS	:= $(SRCS:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
 # final executable file path
 TARGET  := $(BIN_DIR)/chip8

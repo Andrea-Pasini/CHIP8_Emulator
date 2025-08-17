@@ -10,7 +10,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-
+#include <string.h>
+#include "cpu.h"
 
 /**********************************************************/
 /**********************| MACROS |**************************/
@@ -60,50 +61,6 @@ typedef void (*opcode_t) ( uint16_t , uint16_t , uint16_t , uint16_t , uint16_t 
 typedef uint8_t   scr_row_t[ SCR_W ] ;
 typedef scr_row_t display_t[ SCR_H ] ;
 
-/**************************************************************/
-/**********************| PROTOTYPES |**************************/
-
-
-// stack functions prototypes
-int8_t   stack_empty( void                          ) ;
-void     stack_init ( void                          ) ;
-void     stack_push ( uint16_t val                  ) ; 
-uint16_t stack_pop  ( void                          ) ;
-
-// RAM functions prototype
-void     ram_init   ( void                          ) ;
-void     load_font  ( void                          ) ;
-void     load_rom   ( char* path                    ) ;
-
-// pipeline prototypes
-uint16_t if_st      ( void                          ) ; 
-void     load_opc   ( void                          ) ;
-uint8_t  from_inst  ( uint16_t inst , inst_part ind ) ;
-void     id_exe_st  ( uint16_t inst                 ) ;
-
-// opcode prototypes
-void OPC_0( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
-void OPC_8( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
-void OPC_E( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
-void OPC_F( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
-void OPC_1( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
-void OPC_2( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
-void OPC_6( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
-void OPC_6( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
-void OPC_A( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
-void OPC_D( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB  ) ;
-
-// redirected opcodes prototypes
-void OPCF_5( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB ) ;
-void OPC0_0( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB ) ;
-void OPC0_E( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB ) ;
-
-// CLI prototypes
-void draw( void ) ;
-
-
-
-
 
 /********************************************************************/
 /**********************| GLOBAL_VARIABLES |**************************/
@@ -150,7 +107,7 @@ void stack_init( void )
 
 
 // pushes a value in the stack
-void stack_push( uint8_t val ) 
+void stack_push( uint16_t val ) 
 {
     // in case of overflow it doesn't signal it
     if ( STK.sp < STK_SIZE ) STK.cells[ STK.sp++ ] = val ;
@@ -159,7 +116,7 @@ void stack_push( uint8_t val )
 
 
 // returns the value on top of the stack
-uint8_t stack_pop ( void ) 
+uint16_t stack_pop ( void ) 
 {
     return STK.cells[ STK.sp-- ] ; 
 }
@@ -180,25 +137,25 @@ void ram_init( void )
 // loads the chip-8 standard font in the RAM
 void load_font( void )
 {
-    RAM[ 0x050 ] = 0xF0 , RAM[ 0x051 ] = 0x90 , RAM[ 0x052 ] = 0x90 , RAM[ 0x053 ] = 0xF0 , RAM[ 0x054 ] = 0xF0 ; // 0
-    RAM[ 0x055 ] = 0x20 , RAM[ 0x056 ] = 0x60 , RAM[ 0x057 ] = 0x20 , RAM[ 0x058 ] = 0x20 , RAM[ 0x059 ] = 0x70 ; // 1
-    RAM[ 0x05A ] = 0xF0 , RAM[ 0x05B ] = 0x10 , RAM[ 0x05C ] = 0xF0 , RAM[ 0x05D ] = 0x80 , RAM[ 0x05E ] = 0xF0 ; // 2
-    RAM[ 0x05F ] = 0xF0 , RAM[ 0x060 ] = 0x10 , RAM[ 0x061 ] = 0xF0 , RAM[ 0x062 ] = 0x10 , RAM[ 0X063 ] = 0xF0 ; // 3
+    RAM[ 0x050 ] = 0xF0 ; RAM[ 0x051 ] = 0x90 ; RAM[ 0x052 ] = 0x90 ; RAM[ 0x053 ] = 0xF0 ; RAM[ 0x054 ] = 0xF0 ; // 0
+    RAM[ 0x055 ] = 0x20 ; RAM[ 0x056 ] = 0x60 ; RAM[ 0x057 ] = 0x20 ; RAM[ 0x058 ] = 0x20 ; RAM[ 0x059 ] = 0x70 ; // 1
+    RAM[ 0x05A ] = 0xF0 ; RAM[ 0x05B ] = 0x10 ; RAM[ 0x05C ] = 0xF0 ; RAM[ 0x05D ] = 0x80 ; RAM[ 0x05E ] = 0xF0 ; // 2
+    RAM[ 0x05F ] = 0xF0 ; RAM[ 0x060 ] = 0x10 ; RAM[ 0x061 ] = 0xF0 ; RAM[ 0x062 ] = 0x10 ; RAM[ 0X063 ] = 0xF0 ; // 3
 
-    RAM[ 0x064 ] = 0x90 , RAM[ 0x065 ] = 0x90 , RAM[ 0x066 ] = 0xF0 , RAM[ 0x067 ] = 0x10 , RAM[ 0x068 ] = 0x10 ; // 4
-    RAM[ 0x069 ] = 0xF0 , RAM[ 0x06A ] = 0x90 , RAM[ 0x06B ] = 0xF0 , RAM[ 0x06C ] = 0x10 , RAM[ 0x06D ] = 0xF0 ; // 5
-    RAM[ 0x06E ] = 0xF0 , RAM[ 0x06F ] = 0x80 , RAM[ 0x070 ] = 0xF0 , RAM[ 0x071 ] = 0x90 , RAM[ 0x072 ] = 0xF0 ; // 6
-    RAM[ 0x073 ] = 0xF0 , RAM[ 0x074 ] = 0x10 , RAM[ 0x075 ] = 0x20 , RAM[ 0x076 ] = 0x40 , RAM[ 0x077 ] = 0x40 ; // 7
+    RAM[ 0x064 ] = 0x90 ; RAM[ 0x065 ] = 0x90 ; RAM[ 0x066 ] = 0xF0 ; RAM[ 0x067 ] = 0x10 ; RAM[ 0x068 ] = 0x10 ; // 4
+    RAM[ 0x069 ] = 0xF0 ; RAM[ 0x06A ] = 0x90 ; RAM[ 0x06B ] = 0xF0 ; RAM[ 0x06C ] = 0x10 ; RAM[ 0x06D ] = 0xF0 ; // 5
+    RAM[ 0x06E ] = 0xF0 ; RAM[ 0x06F ] = 0x80 ; RAM[ 0x070 ] = 0xF0 ; RAM[ 0x071 ] = 0x90 ; RAM[ 0x072 ] = 0xF0 ; // 6
+    RAM[ 0x073 ] = 0xF0 ; RAM[ 0x074 ] = 0x10 ; RAM[ 0x075 ] = 0x20 ; RAM[ 0x076 ] = 0x40 ; RAM[ 0x077 ] = 0x40 ; // 7
 
-    RAM[ 0x078 ] = 0xF0 , RAM[ 0x079 ] = 0x90 , RAM[ 0x07A ] = 0xF0 , RAM[ 0x07B ] = 0x90 , RAM[ 0x07C ] = 0xF0 ; // 8
-    RAM[ 0x07D ] = 0xF0 , RAM[ 0x07E ] = 0x90 , RAM[ 0x07F ] = 0xF0 , RAM[ 0x080 ] = 0x10 , RAM[ 0x081 ] = 0xF0 ; // 9
-    RAM[ 0x082 ] = 0xF0 , RAM[ 0x083 ] = 0x90 , RAM[ 0x084 ] = 0xF0 , RAM[ 0x085 ] = 0x90 , RAM[ 0x086 ] = 0x90 ; // A
-    RAM[ 0x087 ] = 0xE0 , RAM[ 0x088 ] = 0x90 , RAM[ 0x089 ] = 0xE0 , RAM[ 0x08A ] = 0x90 , RAM[ 0x08B ] = 0xE0 ; // B
+    RAM[ 0x078 ] = 0xF0 ; RAM[ 0x079 ] = 0x90 ; RAM[ 0x07A ] = 0xF0 ; RAM[ 0x07B ] = 0x90 ; RAM[ 0x07C ] = 0xF0 ; // 8
+    RAM[ 0x07D ] = 0xF0 ; RAM[ 0x07E ] = 0x90 ; RAM[ 0x07F ] = 0xF0 ; RAM[ 0x080 ] = 0x10 ; RAM[ 0x081 ] = 0xF0 ; // 9
+    RAM[ 0x082 ] = 0xF0 ; RAM[ 0x083 ] = 0x90 ; RAM[ 0x084 ] = 0xF0 ; RAM[ 0x085 ] = 0x90 ; RAM[ 0x086 ] = 0x90 ; // A
+    RAM[ 0x087 ] = 0xE0 ; RAM[ 0x088 ] = 0x90 ; RAM[ 0x089 ] = 0xE0 ; RAM[ 0x08A ] = 0x90 ; RAM[ 0x08B ] = 0xE0 ; // B
 
-    RAM[ 0x08C ] = 0xF0 , RAM[ 0x08D ] = 0x80 , RAM[ 0x08E ] = 0x80 , RAM[ 0x08F ] = 0x80 , RAM[ 0x090 ] = 0xF0 ; // C
-    RAM[ 0x091 ] = 0xE0 , RAM[ 0x092 ] = 0x90 , RAM[ 0x093 ] = 0x90 , RAM[ 0x094 ] = 0x90 , RAM[ 0x095 ] = 0xE0 ; // D
-    RAM[ 0x096 ] = 0xF0 , RAM[ 0x097 ] = 0x80 , RAM[ 0x098 ] = 0xF0 , RAM[ 0x099 ] = 0x80 , RAM[ 0x09A ] = 0xF0 ; // E
-    RAM[ 0x09B ] = 0xF0 , RAM[ 0x09C ] = 0x80 , RAM[ 0x09D ] = 0xF0 , RAM[ 0x09E ] = 0x80 , RAM[ 0x09F ] = 0xF0 ; // F
+    RAM[ 0x08C ] = 0xF0 ; RAM[ 0x08D ] = 0x80 ; RAM[ 0x08E ] = 0x80 ; RAM[ 0x08F ] = 0x80 ; RAM[ 0x090 ] = 0xF0 ; // C
+    RAM[ 0x091 ] = 0xE0 ; RAM[ 0x092 ] = 0x90 ; RAM[ 0x093 ] = 0x90 ; RAM[ 0x094 ] = 0x90 ; RAM[ 0x095 ] = 0xE0 ; // D
+    RAM[ 0x096 ] = 0xF0 ; RAM[ 0x097 ] = 0x80 ; RAM[ 0x098 ] = 0xF0 ; RAM[ 0x099 ] = 0x80 ; RAM[ 0x09A ] = 0xF0 ; // E
+    RAM[ 0x09B ] = 0xF0 ; RAM[ 0x09C ] = 0x80 ; RAM[ 0x09D ] = 0xF0 ; RAM[ 0x09E ] = 0x80 ; RAM[ 0x09F ] = 0xF0 ; // F
 
     return                                                                                                      ;
 }
@@ -210,10 +167,10 @@ void load_rom( char* path )
     // opens the file and declares variables
     uint16_t buffer                        ; 
     uint16_t RAM_ptr = 0x200               ;
-    FILE*    ROM     = fopen( path , rb )  ;
+    FILE*    ROM     = fopen( path , "rb" )  ;
 
     // for every instruction 
-    while( ( buffer = fread( 1 , sizeof(uint16_t) , ROM ) != EOF ) )
+    while( ( fread( &buffer , 1 , sizeof(uint16_t) , ROM ) != EOF ) )
     {
         // copies the first 8-bits of the instruction in the RAM
         RAM[ RAM_ptr++ ] = (uint8_t) ( (buffer & 0xFF00) >> 8 ) ;
@@ -437,7 +394,7 @@ void OPC_6( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint
 
 
 // adds NN to the X register
-void OPC_6( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+void OPC_7( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
     REG[ X_HB ] += NN_HB ;
     return               ;

@@ -28,6 +28,11 @@
 #define TRUE     1
 #define FALSE    0
 
+// macros: display
+#define SCR_W    64
+#define SCR_H   32
+#define ON       1
+#define OFF      0
 
 
 /****************************************************************/
@@ -50,6 +55,9 @@ typedef enum
 
 // defines a type for opcode function pointers
 typedef void (*opcode_t) ( uint16_t , uint16_t , uint16_t , uint16_t , uint16_t , uint16_t ) ;
+
+typedef uint8_t   scr_row_t[ SCR_W ] ;
+typedef scr_row_t display_t[ SCR_H ] ;
 
 /**************************************************************/
 /**********************| PROTOTYPES |**************************/
@@ -80,12 +88,13 @@ void     id_exe_st  ( uint16_t inst                 ) ;
 
 
 // hardware components ( as global variables )
-stack_t STK             ;
-uint8_t PC              ;
-uint8_t SND_TIMER       ;
-uint8_t DEL_TIMER       ;
-uint8_t RAM[ RAM_SIZE ] ;
-uint8_t REG[ REG_NUM  ] ;
+stack_t   STK             ;
+uint8_t   PC              ;
+uint8_t   SND_TIMER       ;
+uint8_t   DEL_TIMER       ;
+uint8_t   RAM[ RAM_SIZE ] ;
+uint8_t   REG[ REG_NUM  ] ;
+display_t DSP             ;
 
 // opcode tables ( needed to discriminate between different instructions )
 opcode_t OPCXX[  16 ]   ;
@@ -275,7 +284,7 @@ void load_opc( void )
     OPCXX[0xC] = OPC_C ; OPCXX[0xD] = OPC_D ; OPCXX[0xE] = OPC_E ; OPCXX[0xF] = OPC_F ; 
     
     // loads the opcodes starting with the half-byte "0"
-    OPC0X[0x0] = OPC0_0 ; OPC0X[0x1] = OPC0_1 ;
+    OPC0X[0x0] = OPC0_0 ; OPC0X[0xE] = OPC0_E ;
 
     // loads the opcodes starting with the half-byte "8"
     OPC8X[0x0] = OPC8_0 ; OPC8X[0x1] = OPC8_1 ; OPC8X[0x2] = OPC8_2 ; 
@@ -313,9 +322,57 @@ void id_exe_st( uint16_t inst )
 /****************************************************************************/
 /**********************|  OPCODES & INSTRUCTIONS  |**************************/
 
+
+// redirects the opcodes starting with "0" to their implementation
+void OPC_0( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    OPC0X[ N_HB ]( F_HB , X_HB , Y_HB , N_HB , NN_HB , NNN_HB ) ;
+    return                                                      ;
+}
+
+
+// redirects the opcodes starting with "8" to their implementation
+void OPC_8( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    OPC8X[ N_HB ]( F_HB , X_HB , Y_HB , N_HB , NN_HB , NNN_HB ) ;
+    return                                                      ;
+}
+
+// redirects the opcodes starting with  "E" to their implementation
+void OPC_E( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    OPCEX[ N_HB ]( F_HB , X_HB , Y_HB , N_HB , NN_HB , NNN_HB ) ;
+    return                                                      ;
+}
+
+// redirects the opcodes starting with "F" to their implementation
+void OPC_F( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    OPCFX[ N_HB ]( F_HB , X_HB , Y_HB , N_HB , NN_HB , NNN_HB ) ;
+    return                                                      ;
+}
+
+// redirects the opcodes starting with "F" and ending with "5" to their implementation
+void OPCF_5( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    OPCF5[ Y_HB ]( F_HB , X_HB , Y_HB , N_HB , NN_HB , NNN_HB ) ;
+    return                                                      ;
+}
+
+
 /*
 
-    TO-DO: implementation of every instruction 
-           (at least the CPU related ones)
+
+    What follows is the implementation of some of the most basic instruction used to draw
+    the IBM logo. The choice to implement these instructions first relies on the possibility 
+    to check how the cpu works right now. Later, the CLI interface will be replaced by a 
+    proper SDL2 window
+
 
 */
+
+void OPC0_0( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    for ( int i = 0 ; i < SCR_H ; i++ ) memset( DSP[ i ] , 0x00 , SCR_W ) ;
+    return                                                                ;
+}

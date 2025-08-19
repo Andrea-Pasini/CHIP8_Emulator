@@ -36,32 +36,6 @@
 #define ON       1
 #define OFF      0
 
-
-/****************************************************************/
-/**********************| CUSTOM-TYPES |**************************/
-
-
-// custom types
-typedef struct stack_struct
-{
-    uint8_t  sp                ;
-    uint16_t cells[ STK_SIZE ] ;
-}   stack_t                    ;
-
-// part of instruction for "from_inst"
-typedef enum 
-{
-    F    , X    , Y    ,   
-    N    , NN   , NNN       
-}   inst_part          ; 
-
-// defines a type for opcode function pointers
-typedef void (*opcode_t) ( uint16_t , uint16_t , uint16_t , uint16_t , uint16_t , uint16_t ) ;
-
-typedef uint8_t   scr_row_t[ SCR_W ] ;
-typedef scr_row_t display_t[ SCR_H ] ;
-
-
 /********************************************************************/
 /**********************| GLOBAL_VARIABLES |**************************/
 
@@ -101,7 +75,7 @@ int8_t stack_empty( void )
 void stack_init( void ) 
 {
     STK.sp = 0                            ;
-    memset( STK.cells , 0x00 , STK_SIZE ) ;
+    memset( STK.cells , 0x00 , STK_SIZE * sizeof( uint16_t ) ) ;
     return                                ;
 }
 
@@ -130,6 +104,7 @@ uint16_t stack_pop ( void )
 void ram_init( void )
 {
     load_font( )    ;
+    load_opc( )     ;
     PC = ENTRY_PT   ; 
 }
 
@@ -169,14 +144,21 @@ void load_rom( char* path )
     uint16_t RAM_ptr = 0x200               ;
     FILE*    ROM     = fopen( path , "rb" )  ;
 
-    // for every instruction 
-    while( ( fread( &buffer , 1 , sizeof(uint16_t) , ROM ) != EOF ) )
+    if ( ROM == NULL ) 
     {
-        // copies the first 8-bits of the instruction in the RAM
-        RAM[ RAM_ptr++ ] = (uint8_t) ( (buffer & 0xFF00) >> 8 ) ;
+        fprintf( stderr , "ROM not found\n" ) ;
+        exit( 5 )                               ;
+    }
 
+    // for every instruction 
+    while( ( fread( &buffer , sizeof(uint16_t) , 1 , ROM ) != 0 ) )
+    {
         // copies the last 8-bits  of the instruction in the RAM
         RAM[ RAM_ptr++ ] = (uint8_t) ( (buffer & 0x00FF)      ) ;
+        // copies the first 8-bits of the instruction in the RAM
+        RAM[ RAM_ptr++ ] = (uint8_t) ( (buffer & 0xFF00) >> 8 ) ;
+        
+
     }
 
     return ;
@@ -186,10 +168,10 @@ void load_rom( char* path )
 /**********************|  PIPELINE FUNCTIONS  |**************************/
 
 // reads 2 bytes from memory and returns them as a 16-BIT number
-uint16_t if_st( void ) ; 
+uint16_t if_st( void ) 
 {
-    uint16_t instruction = ( RAM[ PC++ ] << 8 ) + [ RAM[ PC++ ] ] ; 
-    return   instruction                                          ; 
+    uint16_t instruction = ( RAM[ PC++ ] << 8 ) + RAM[ PC++ ] ; 
+    return   instruction                                      ; 
 }
 
 
@@ -385,6 +367,25 @@ void OPC_2( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint
 }
 
 
+// to be implemented
+void OPC_3( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPC_4( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPC_5( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+
 // stores NN into the X register
 void OPC_6( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
@@ -401,11 +402,86 @@ void OPC_7( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint
 }
 
 
+// to be implemented
+void OPC8_0( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPC8_1( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPC8_2( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPC8_3( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPC8_4( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPC8_5( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPC8_6( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPC8_7( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPC8_E( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPC_9( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+
 // sets the I_REG to NNN
 void OPC_A( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
     I_REG = NNN_HB ;
     return         ;
+}
+
+
+// to be implemented
+void OPC_B( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+
+// to be implemented
+void OPC_C( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
 }
 
 
@@ -446,8 +522,71 @@ void OPC_D( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint
     draw( ) ; 
 }
 
+// to be implemented
+void OPCE_1( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
 
+// to be implemented
+void OPCE_E( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
 
+// to be implemented
+void OPCF_3( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPCF5_1( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPCF5_5( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPCF5_6( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPCF_7( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPCF_8( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPCF_9( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPCF_A( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
+
+// to be implemented
+void OPCF_E( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
+{
+    return ;
+}
 /**************************************************************************/
 /**********************|  GRAPHICS (TEMPORARY)  |**************************/
 

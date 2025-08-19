@@ -1,3 +1,55 @@
+/**********************************************************/
+/**********************| MACROS |**************************/
+
+
+// macros: hardware
+#define RAM_SIZE 4096
+#define REG_NUM  16
+#define STK_SIZE 256
+
+// macros: execution
+#define ENTRY_PT 0x200
+
+// macros: booleans
+#define TRUE     1
+#define FALSE    0
+
+// macros: display
+#define SCR_W    64
+#define SCR_H    32
+#define CLR_DSP  "\033[2J\033[H" 
+#define ON       1
+#define OFF      0
+
+
+/****************************************************************/
+/**********************| CUSTOM-TYPES |**************************/
+
+
+// custom types
+typedef struct stack_struct
+{
+    uint8_t  sp                ;
+    uint16_t cells[ STK_SIZE ] ;
+}   stack_t                    ;
+
+// part of instruction for "from_inst"
+typedef enum 
+{
+    F    , X    , Y    ,   
+    N    , NN   , NNN       
+}   inst_part          ; 
+
+// defines a type for opcode function pointers
+typedef void (*opcode_t) ( uint16_t , uint16_t , uint16_t , uint16_t , uint16_t , uint16_t ) ;
+
+typedef uint8_t   scr_row_t[ SCR_W ] ;
+typedef scr_row_t display_t[ SCR_H ] ;
+
+
+/****************************************************************/
+/**********************| PROTOTYPES |****************************/
+
 
 
 // stack functions prototypes

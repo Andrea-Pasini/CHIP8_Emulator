@@ -2,10 +2,10 @@
 CC 		:= gcc
 
 # gcc flags
-CFLAGS  := -Wall -Wextra -std=c11 -g3 -Iincludes
+CFLAGS  :=  -std=c11 -g3 -o0  -Iincludes 
 
 # linking flags
-LDFLAGS := -l SDL2
+#LDFLAGS := -l SDL2
 
 # directories
 SRC_DIR := source

@@ -2,16 +2,18 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <unistd.h>
+
 
 #include "cpu.h"
 
-#define SLEEP_TIME 16666
+#define SLEEP_TIME 0.01667
 
 int main( int argc , char** argv )
 {
     // loads the font and the ROM in the RAM
     ram_init( )           ;
-    load_rom( argv[1] )   ;
+    load_rom( "/home/andrea/Projects/CHIP-8/roms/ibm.ch8" )   ;
 
     // initializes the stack
     stack_init( )         ;
@@ -28,6 +30,6 @@ int main( int argc , char** argv )
         id_exe_st( inst )    ;
 
         // delay introduced to make the emulator run at 60 fps
-        usleep( SLEEP_TIME ) ;
+        sleep( SLEEP_TIME ) ;
     }
 }

@@ -14,6 +14,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
+#include <locale.h> // remove when the GUI will be implemented
 
 #include "cpu.h"
 
@@ -21,6 +22,9 @@
 
 int main( int argc , char** argv )
 {
+    // enables utf-8 characters
+    setlocale(LC_CTYPE, "");  // attiva UTF-8
+    
     // creates the random number generator seed
     srand( time( NULL ) ) ;
     

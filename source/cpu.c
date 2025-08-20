@@ -279,7 +279,7 @@ void id_exe_st( uint16_t inst )
     uint16_t NN_HB = from_inst( inst , NN ) , NNN_HB = from_inst( inst , NNN ) ;
 
     // debug: prints the instruction
-    // printf("Istruzione: %x%x%x%x\n\n", F_HB,X_HB,Y_HB,N_HB) ;
+    //printf("Istruzione: %x%x%x%x\n\n", F_HB,X_HB,Y_HB,N_HB) ;
 
     // redirections the execution of the instruction to other functions
     OPCXX[ F_HB ]( F_HB , X_HB , Y_HB , N_HB , NN_HB , NNN_HB )                ; 
@@ -650,7 +650,8 @@ void draw( void )
         // draws the row and goes to the next one
         for( int col = 0 ; col < SCR_W ; col++ )
         {
-            if ( DSP[ row ][ col ] == ON ) printf( "#" ) ;
+            // prints a full block if the pixel is on
+            if ( DSP[ row ][ col ] == ON ) printf( "\xE2\x96\x88" ) ;
             else                           printf( " " ) ;
         }
         printf( "\n" ) ;

@@ -11,6 +11,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+
 #include "cpu.h"
 
 /**********************************************************/
@@ -32,7 +34,7 @@
 // macros: display
 #define SCR_W    64
 #define SCR_H    32
-#define CLR_DSP  "\033[2J\033[H" 
+#define CLR_DSP  "\033c"//"\033[2J\033[H" 
 #define ON       1
 #define OFF      0
 
@@ -276,6 +278,9 @@ void id_exe_st( uint16_t inst )
     uint16_t Y_HB  = from_inst( inst , Y )  , N_HB   = from_inst( inst , N   ) ; 
     uint16_t NN_HB = from_inst( inst , NN ) , NNN_HB = from_inst( inst , NNN ) ;
 
+    // debug: prints the instruction
+    // printf("Istruzione: %x%x%x%x\n\n", F_HB,X_HB,Y_HB,N_HB) ;
+
     // redirections the execution of the instruction to other functions
     OPCXX[ F_HB ]( F_HB , X_HB , Y_HB , N_HB , NN_HB , NNN_HB )                ; 
 }
@@ -367,21 +372,24 @@ void OPC_2( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint
 }
 
 
-// to be implemented
+// skips one instruction if Vx is equal to NN
 void OPC_3( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    if ( REG[ X_HB ] == NN_HB ) PC += 2 ;
     return ;
 }
 
-// to be implemented
+// skips one instruction if Vx is not equal to NN
 void OPC_4( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    if ( REG[ X_HB ] != NN_HB ) PC += 2 ;
     return ;
 }
 
-// to be implemented
+// skips one instruction if Vx is equal to Vy
 void OPC_5( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    if ( REG[ X_HB ] == REG[ Y_HB ] ) PC += 2 ;
     return ;
 }
 
@@ -402,63 +410,77 @@ void OPC_7( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint
 }
 
 
-// to be implemented
+// sets Vx to the value of Vy
 void OPC8_0( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    REG[ X_HB ] = REG[ Y_HB ] ;
     return ;
 }
 
-// to be implemented
+// applys the "logical or" operation to Vx and Vy and saves the result in Vx
 void OPC8_1( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    REG[ X_HB ] |= REG[ Y_HB ] ;
     return ;
 }
 
-// to be implemented
+// applys the "logical and" operation to Vx and Vy and saves the result in Vx
 void OPC8_2( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    REG[ X_HB ] &= REG[ Y_HB ] ;
     return ;
 }
 
-// to be implemented
+// applys the "logical xor" operation to Vx and Vy and saves the result in Vx
 void OPC8_3( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    REG[ X_HB ] ^= REG[ Y_HB ] ;
     return ;
 }
 
-// to be implemented
+// adds Vy to Vx
 void OPC8_4( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    REG[ X_HB ] += REG[ Y_HB ] ;
     return ;
 }
 
-// to be implemented
+// sets Vx to the result of Vx - Vy
 void OPC8_5( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    REG[ X_HB ] -= REG[ Y_HB ] ;
     return ;
 }
 
-// to be implemented
+// ambiguous: sets Vx to Vx (or Vy) shifted to the right once
 void OPC8_6( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    REG[ X_HB ] = REG[ Y_HB ]           ; // optional line!!
+    REG[ 0xF  ] = REG[ X_HB ] &  0x0001 ;
+    REG[ X_HB ] = REG[ X_HB ] >> 1      ;
     return ;
 }
 
-// to be implemented
+// sets Vx to the result of Vy - Vx
 void OPC8_7( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    REG[ X_HB ] = REG[ Y_HB ] - REG[ X_HB ] ;
     return ;
 }
 
-// to be implemented
+// ambiguous: sets Vx to Vx (or Vy) shifted to the left once
 void OPC8_E( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    REG[ X_HB ] = REG[ Y_HB ]           ; // optional line!!
+    REG[ 0xF  ] = REG[ X_HB ] &  0x0001 ;
+    REG[ X_HB ] = REG[ X_HB ] << 1      ;
     return ;
 }
 
-// to be implemented
+// skips an instruction if Vx is not equal to Vy
 void OPC_9( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    if ( REG[ X_HB ] != REG[ Y_HB ] ) PC += 2 ;
     return ;
 }
 
@@ -471,16 +493,18 @@ void OPC_A( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint
 }
 
 
-// to be implemented
+// ambiguous: sets the program counter to NNN + V0
 void OPC_B( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    PC = NNN_HB + REG[ 0x0 ] ; 
     return ;
 }
 
 
-// to be implemented
+// generates a random number, applys "logical and" between it and NN and sets Vx to the result
 void OPC_C( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    REG[ X_HB ] = rand( ) & NN_HB ; 
     return ;
 }
 
@@ -503,11 +527,11 @@ void OPC_D( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint
         uint8_t buffer = RAM[ I_REG + spr_row ] ;
 
         // for every bit in the buffer, starting from the MSB
-        for( int bit_n = 7 ; bit_n >= 8 ; bit_n-- )
+        for( int bit_n = 7 ; bit_n >= 0 ; bit_n-- )
         {
             // calculates the coordinates
             bit   = ( buffer & ( 1 << bit_n ) ) >> bit_n ;
-            drw_x = ( spr_x  +   bit_n        )  % SCR_W ;
+            drw_x = ( spr_x  + ( 7 - bit_n  ) )  % SCR_W ;
             drw_y = ( spr_y  +   spr_row      )  % SCR_H ;
             
             // updates the collision flag
@@ -528,51 +552,72 @@ void OPCE_1( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uin
     return ;
 }
 
+
 // to be implemented
 void OPCE_E( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
     return ;
 }
 
-// to be implemented
+
+// converts Vx in decimal and stores each digit in the RAM starting from the address found in the I register
 void OPCF_3( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
-    return ;
+    uint8_t val = REG[ X_HB ]       ; 
+
+    for( int i = 0 ; i < 3 ; i++ )
+    {
+        RAM[ I_REG + i ] = val % 10 ;
+        val /= 10                   ; 
+    }
+    return                          ;
 }
 
-// to be implemented
+// sets the delay timer to Vx
 void OPCF5_1( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    DEL_TIMER = REG[ X_HB ] ;
     return ;
 }
 
-// to be implemented
+// stores V0 to Vx (included) in the RAM starting from the address stored in the I register
 void OPCF5_5( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    for ( int i = 0 ; i <= X_HB ; i++ )
+    {
+        RAM[ I_REG + i ] = REG[ i ] ;
+    }
     return ;
 }
 
-// to be implemented
+// stores x+1 bytes from the RAM (starting from address I) in the first x+1 registers
 void OPCF5_6( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    for ( int i = 0 ; i <= X_HB ; i++ )
+    {
+        REG[ i ] = RAM[ I_REG + i ]  ;
+    }
     return ;
 }
 
-// to be implemented
+// sets Vx to the value of the delay timer
 void OPCF_7( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    REG[ X_HB ] = DEL_TIMER ;
     return ;
 }
 
-// to be implemented
+// sets the sound timer to Vx
 void OPCF_8( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    SND_TIMER = REG[ X_HB ] ; 
     return ;
 }
 
-// to be implemented
+// sets the I register value to the address of the character selected
 void OPCF_9( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    I_REG = 0x050 + ( REG[ X_HB ] * 5 ) ;
     return ;
 }
 
@@ -582,9 +627,10 @@ void OPCF_A( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uin
     return ;
 }
 
-// to be implemented
+// adds Vx to the I register 
 void OPCF_E( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    I_REG += REG[ X_HB ] ;
     return ;
 }
 /**************************************************************************/
@@ -596,6 +642,7 @@ void draw( void )
 {
     // clears the display
     printf( CLR_DSP ) ;
+    fflush( stdout )  ;
 
     // for every row
     for( int row = 0 ; row < SCR_H ; row++ )

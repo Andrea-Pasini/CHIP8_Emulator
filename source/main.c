@@ -1,19 +1,32 @@
+/*
+
+    Right now, the emulator automatically plays the chip8-logo.ch8 demo, 
+    a small program written by Timendus that draws a logo on the screen. 
+    This is due to the fact that the cpu module is not fully debugged 
+    yet and other programs could crash/not work properly.
+
+*/
+
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
-
+#include <time.h>
 
 #include "cpu.h"
 
-#define SLEEP_TIME 0.01667
+#define SLEEP_TIME 16667
 
 int main( int argc , char** argv )
 {
+    // creates the random number generator seed
+    srand( time( NULL ) ) ;
+    
     // loads the font and the ROM in the RAM
     ram_init( )           ;
-    load_rom( "/home/andrea/Projects/CHIP-8/roms/ibm.ch8" )   ;
+    load_rom( "/home/andrea/Projects/CHIP-8/roms/chip8-logo.ch8" )   ;
 
     // initializes the stack
     stack_init( )         ;
@@ -30,6 +43,6 @@ int main( int argc , char** argv )
         id_exe_st( inst )    ;
 
         // delay introduced to make the emulator run at 60 fps
-        sleep( SLEEP_TIME ) ;
+        usleep( SLEEP_TIME ) ;
     }
 }

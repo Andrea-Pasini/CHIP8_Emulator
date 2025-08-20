@@ -17,7 +17,7 @@
 // macros: display
 #define SCR_W    64
 #define SCR_H    32
-#define CLR_DSP  "\033[2J\033[H" 
+#define CLR_DSP  "\033c"//"\033[2J\033[H" 
 #define ON       1
 #define OFF      0
 

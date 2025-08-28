@@ -12,8 +12,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <SDL2/SDL.h>
 
 #include "cpu.h"
+#include "display.h"
 
 /**********************************************************/
 /**********************| MACROS |**************************/
@@ -37,6 +39,8 @@
 #define CLR_DSP  "\033c"//"\033[2J\033[H" 
 #define ON       1
 #define OFF      0
+#define BLUE     0x0000FFFF
+#define WHITE    0xFFFFFFFF
 
 /********************************************************************/
 /**********************| GLOBAL_VARIABLES |**************************/
@@ -60,6 +64,8 @@ opcode_t OPCEX[ 0xE ]   ;
 opcode_t OPCFX[ 0xE ]   ;
 opcode_t OPCF5[ 0x3 ]   ;
 
+// window variable (defined in the display module)
+extern win_ren_t window ;
 
 /*********************************************************/
 /**********************| STACK |**************************/
@@ -283,6 +289,9 @@ void id_exe_st( uint16_t inst )
 
     // redirections the execution of the instruction to other functions
     OPCXX[ F_HB ]( F_HB , X_HB , Y_HB , N_HB , NN_HB , NNN_HB )                ; 
+    
+    // draws the texture onto the screen
+    draw_texture( ) ;
 }
 
 
@@ -342,7 +351,7 @@ void OPCF_5( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uin
 // clears the screen
 void OPC0_0( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
-    for ( int i = 0 ; i < SCR_H ; i++ ) memset( DSP[ i ] , 0x00 , SCR_W ) ;
+    for ( int i = 0 ; i < SCR_H ; i++ ) memset( DSP[ i ] , 0x00000000 , SCR_W ) ;
     return                                                                ;
 }
 
@@ -524,7 +533,7 @@ void OPC_D( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint
     for( int spr_row = 0 ; spr_row < N_HB ; spr_row++ )
     {
         // loads the byte into a buffer
-        uint8_t buffer = RAM[ I_REG + spr_row ] ;
+        uint32_t buffer = RAM[ I_REG + spr_row ] ;
 
         // for every bit in the buffer, starting from the MSB
         for( int bit_n = 7 ; bit_n >= 0 ; bit_n-- )
@@ -542,8 +551,6 @@ void OPC_D( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint
         }
     }
 
-    // draws the updted display
-    draw( ) ; 
 }
 
 // to be implemented
@@ -633,29 +640,36 @@ void OPCF_E( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uin
     I_REG += REG[ X_HB ] ;
     return ;
 }
-/**************************************************************************/
-/**********************|  GRAPHICS (TEMPORARY)  |**************************/
+/********************************************************************/
+/**********************|  GRAPHICS (GUI)  |**************************/
 
 
-// draws the display in the command line
-void draw( void )
+void draw_texture( void )
 {
-    // clears the display
-    printf( CLR_DSP ) ;
-    fflush( stdout )  ;
-
-    // for every row
+    static uint32_t framebuffer[ SCR_H * SCR_W ]   ;
+    
+    // copies the display texture in the framebuffer
     for( int row = 0 ; row < SCR_H ; row++ )
     {
-        // draws the row and goes to the next one
-        for( int col = 0 ; col < SCR_W ; col++ )
+        for ( int col = 0 ; col < SCR_W ; col++ )
         {
-            // prints a full block if the pixel is on
-            if ( DSP[ row ][ col ] == ON ) printf( "\xE2\x96\x88" ) ;
-            else                           printf( " " ) ;
+            framebuffer[ row * SCR_W + col ] = ( DSP[ row ][ col ] ) ? WHITE
+                                                                     : BLUE ;
         }
-        printf( "\n" ) ;
     }
+
+
+    // updates the texture syncronizing it to the framebuffer
+    if (SDL_UpdateTexture( window.tex , NULL , framebuffer , sizeof( uint32_t ) * SCR_W )<0) 
+    {
+        printf("UpdateTexture error: %s\n", SDL_GetError()) ;
+    }
+    
+    // effectively draws the screen 
+    SDL_RenderClear  ( window.ren                            ) ;
+    SDL_RenderCopy   ( window.ren , window.tex , NULL , NULL ) ;
+    SDL_RenderPresent( window.ren                            ) ;
+
 }
 
 

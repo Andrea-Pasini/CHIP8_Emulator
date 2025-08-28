@@ -1,3 +1,6 @@
+#ifndef  CPU_H
+#define CPU_H
+
 /**********************************************************/
 /**********************| MACROS |**************************/
 
@@ -43,8 +46,8 @@ typedef enum
 // defines a type for opcode function pointers
 typedef void (*opcode_t) ( uint16_t , uint16_t , uint16_t , uint16_t , uint16_t , uint16_t ) ;
 
-typedef uint8_t   scr_row_t[ SCR_W ] ;
-typedef scr_row_t display_t[ SCR_H ] ;
+typedef uint32_t   scr_row_t[ SCR_W ] ;
+typedef scr_row_t display_t[ SCR_H ]  ;
 
 
 /****************************************************************/
@@ -120,6 +123,8 @@ void OPCF5_1(uint16_t F_HB, uint16_t X_HB, uint16_t Y_HB, uint16_t N_HB, uint16_
 void OPCF5_5(uint16_t F_HB, uint16_t X_HB, uint16_t Y_HB, uint16_t N_HB, uint16_t NN_HB, uint16_t NNN_HB);
 void OPCF5_6(uint16_t F_HB, uint16_t X_HB, uint16_t Y_HB, uint16_t N_HB, uint16_t NN_HB, uint16_t NNN_HB);
 
-// CLI prototypes
-void draw( void ) ;
+// prototype for texture drawing
+void draw_texture( void ) ;
 
+
+#endif

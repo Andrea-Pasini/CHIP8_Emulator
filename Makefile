@@ -5,7 +5,7 @@ CC 		:= gcc
 CFLAGS  :=  -g3 -o0  -Iincludes 
 
 # linking flags
-#LDFLAGS := -l SDL2
+LDFLAGS := -l SDL2
 
 # directories
 SRC_DIR := source

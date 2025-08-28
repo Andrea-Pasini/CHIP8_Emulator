@@ -14,39 +14,59 @@
 #include <string.h>
 #include <unistd.h>
 #include <time.h>
-#include <locale.h> // remove when the GUI will be implemented
+#include <SDL2/SDL.h>
 
 #include "cpu.h"
+#include "display.h"
 
-#define SLEEP_TIME 16667
+#define ERROR      2
+#define TERMINATED 0
+#define RUNNING    1
+
+extern win_ren_t window ;
 
 int main( int argc , char** argv )
 {
-    // enables utf-8 characters
-    setlocale(LC_CTYPE, "");  // attiva UTF-8
+    // creates the window and handles related errors
+    if ( !create_window( 1000 , 1000 , 0 )  ) exit( ERROR ) ;
+
+    // makes the window pitch black
+    clear_window( )                                       ;
+
+    // destroys the window when the program ends
+    atexit( destroy_window )                              ;
     
     // creates the random number generator seed
-    srand( time( NULL ) ) ;
+    srand( time( NULL ) )                                 ;
     
-    // loads the font and the ROM in the RAM
-    ram_init( )           ;
-    load_rom( "/home/andrea/Projects/CHIP-8/roms/chip8-logo.ch8" )   ;
+    // initializes the emulator
+    ram_init( )                                                    ;
+    load_rom( "/home/andrea/Projects/CHIP-8/roms/chip8-logo.ch8" ) ;
+    stack_init( )                                                  ;
 
-    // initializes the stack
-    stack_init( )         ;
+    int       emulator_state = RUNNING ;
+    SDL_Event event                    ;
+    uint16_t  inst                     ;
 
-    uint16_t inst ;
-
-    // while the machine is on
-    while( 1 )
+    // main loop
+    while( emulator_state == RUNNING )
     {
-        // fetches the instruction from the ROM
-        inst = if_st(  )     ;
+        // temporary event handling
+        while( SDL_PollEvent( &event ) )
+        {
+            // handles the termination input
+            if ( event.type == SDL_QUIT ) emulator_state = TERMINATED ;
+        }
 
-        // decodes and executes the instruction  
-        id_exe_st( inst )    ;
+        // pipeline
+        id_exe_st( if_st( ) ) ;
 
-        // delay introduced to make the emulator run at 60 fps
-        usleep( SLEEP_TIME ) ;
+        // forces 60 Hz execution
+        SDL_Delay( 16       ) ;
     }
+
+    // termination 
+    exit( TERMINATED ) ;
+    
 }
+

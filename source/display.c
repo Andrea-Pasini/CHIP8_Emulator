@@ -89,10 +89,10 @@ void destroy_window( )
 // fills the window with a black rectangle
 void clear_window( void )
 {
-    // sets the drawing color to #000000
+    // sets the drawing color to #0000FF
     SDL_SetRenderDrawColor( window.ren , 0 , 0 , 0xFF , 1 ) ;
 
-    // fills the buffer with #000000
+    // fills the buffer with #0000FF
     SDL_RenderClear       ( window.ren                    ) ; 
 
     // fills the render with a rectangle

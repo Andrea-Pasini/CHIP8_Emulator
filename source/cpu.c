@@ -62,10 +62,24 @@ opcode_t OPC0X[ 0xE ]   ;
 opcode_t OPC8X[ 0xE ]   ;
 opcode_t OPCEX[ 0xE ]   ;
 opcode_t OPCFX[ 0xE ]   ;
-opcode_t OPCF5[ 0x3 ]   ;
+opcode_t OPCF5[ 0x7 ]   ;
 
 // window variable (defined in the display module)
 extern win_ren_t window ;
+
+/*********************************************************/
+/**********************| INIT |**************************/
+
+void init_chip8( char* rom )
+{
+    // clears the screen (not every rom does that on its own)
+    OPC0_0     ( 0 , 0 , 0 , 0 , 0 , 0 ) ; 
+    
+    // initializes the emulator
+    ram_init   (     ) ;
+    load_rom   ( rom ) ;
+    stack_init (     ) ;
+}
 
 /*********************************************************/
 /**********************| STACK |**************************/
@@ -290,8 +304,6 @@ void id_exe_st( uint16_t inst )
     // redirections the execution of the instruction to other functions
     OPCXX[ F_HB ]( F_HB , X_HB , Y_HB , N_HB , NN_HB , NNN_HB )                ; 
     
-    // draws the texture onto the screen
-    draw_texture( ) ;
 }
 
 
@@ -351,7 +363,8 @@ void OPCF_5( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uin
 // clears the screen
 void OPC0_0( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
-    for ( int i = 0 ; i < SCR_H ; i++ ) memset( DSP[ i ] , 0x00000000 , SCR_W ) ;
+    //for ( int i = 0 ; i < SCR_H ; i++ ) memset( DSP[ i ] , 0x00000000 , SCR_W ) ;
+    for( int i = 0 ; i < SCR_W * SCR_H ; i++ ) DSP[ i ] = BLUE ;
     return                                                                ;
 }
 
@@ -525,9 +538,10 @@ void OPC_D( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint
     REG[ 0xF ] = 0 ;
     
     // gets the X (0-63) and the Y (0-31) coordinates to start drawing the sprite
-    uint8_t spr_x = REG[ X_HB ] % SCR_W ;
-    uint8_t spr_y = REG[ Y_HB ] % SCR_H ;
-    uint8_t bit , drw_x , drw_y         ;
+    uint8_t  spr_x = REG[ X_HB ] % SCR_W ;
+    uint8_t  spr_y = REG[ Y_HB ] % SCR_H ;
+    uint8_t  bit , drw_x , drw_y         ;
+    uint32_t index                       ;
 
     // for every byte that needs to be drawn
     for( int spr_row = 0 ; spr_row < N_HB ; spr_row++ )
@@ -542,14 +556,22 @@ void OPC_D( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint
             bit   = ( buffer & ( 1 << bit_n ) ) >> bit_n ;
             drw_x = ( spr_x  + ( 7 - bit_n  ) )  % SCR_W ;
             drw_y = ( spr_y  +   spr_row      )  % SCR_H ;
+            index = drw_y * SCR_W + drw_x ;
             
-            // updates the collision flag
-            if ( ( DSP[ drw_y ][ drw_x ] ) && ( bit ) ) REG[ 0xF ] = 1 ;
-
-            // updates the pixel's colour
-            DSP[ drw_y ][ drw_x ] ^= bit ;
+            // if the bit is set, toggles the pixel
+            if ( bit == ON )
+            {
+                // detects the collision
+                if ( DSP[ index ] == WHITE ) REG[ 0xF ] = TRUE ; 
+                
+                // toggles the pixel
+                DSP[ index ] = ( DSP[ index ] == WHITE ) ? BLUE : WHITE ;
+            }
         }
     }
+
+    // draws the texture onto the screen
+    //draw_texture( ) ;
 
 }
 
@@ -646,7 +668,7 @@ void OPCF_E( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uin
 
 void draw_texture( void )
 {
-    static uint32_t framebuffer[ SCR_H * SCR_W ]   ;
+    /*static uint32_t framebuffer[ SCR_H * SCR_W ]   ;
     
     // copies the display texture in the framebuffer
     for( int row = 0 ; row < SCR_H ; row++ )
@@ -656,11 +678,10 @@ void draw_texture( void )
             framebuffer[ row * SCR_W + col ] = ( DSP[ row ][ col ] ) ? WHITE
                                                                      : BLUE ;
         }
-    }
-
+    }*/
 
     // updates the texture syncronizing it to the framebuffer
-    if (SDL_UpdateTexture( window.tex , NULL , framebuffer , sizeof( uint32_t ) * SCR_W )<0) 
+    if (SDL_UpdateTexture( window.tex , NULL , DSP , sizeof( uint32_t ) * SCR_W )<0) 
     {
         printf("UpdateTexture error: %s\n", SDL_GetError()) ;
     }

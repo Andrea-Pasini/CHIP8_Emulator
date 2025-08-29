@@ -46,13 +46,14 @@ typedef enum
 // defines a type for opcode function pointers
 typedef void (*opcode_t) ( uint16_t , uint16_t , uint16_t , uint16_t , uint16_t , uint16_t ) ;
 
-typedef uint32_t   scr_row_t[ SCR_W ] ;
-typedef scr_row_t display_t[ SCR_H ]  ;
-
+//typedef uint32_t   scr_row_t[ SCR_W ] ;
+//typedef scr_row_t display_t[ SCR_H ]  ;
+typedef uint32_t display_t[ SCR_W * SCR_H ] ;
 
 /****************************************************************/
 /**********************| PROTOTYPES |****************************/
 
+void     init_chip8 ( char* rom                     ) ;
 
 
 // stack functions prototypes

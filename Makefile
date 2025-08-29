@@ -2,7 +2,7 @@
 CC 		:= gcc
 
 # gcc flags
-CFLAGS  :=  -g3 -o0  -Iincludes 
+CFLAGS  :=  -g3 -o3  -Iincludes 
 
 # linking flags
 LDFLAGS := -l SDL2

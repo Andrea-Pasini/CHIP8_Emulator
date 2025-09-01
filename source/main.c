@@ -9,12 +9,16 @@
 
 #include "cpu.h"
 #include "display.h"
+#include "input.h"
 
 #define ERROR      2
 #define TERMINATED 0
 #define RUNNING    1
 
-extern win_ren_t window ;
+extern win_ren_t window       ;
+extern uint16_t  SND_TIMER    ;
+extern uint16_t  DEL_TIMER    ;
+extern uint8_t   keys[ 16 ]   ;
 
 int main( int argc , char** argv )
 {
@@ -31,7 +35,7 @@ int main( int argc , char** argv )
     srand( time( NULL ) )                                 ;
     
     // prepares the emulator to run a game
-    init_chip8( "/home/andrea/Projects/CHIP-8/roms/breakout.ch8" ) ;
+    init_chip8( "/home/andrea/Projects/CHIP-8/roms/Soccer.ch8" ) ;
     
     int       past_timestamp , curr_timestamp ;
     int       emulator_state = RUNNING        ;
@@ -50,15 +54,40 @@ int main( int argc , char** argv )
             if (   event.type == SDL_QUIT ) emulator_state = TERMINATED ;
 
             // resizes the window
-            if ( ( event.type         == SDL_WINDOWEVENT         ) && 
-                   event.window.event == SDL_WINDOWEVENT_RESIZED )
+            else if ( ( event.type         == SDL_WINDOWEVENT         ) && 
+                        event.window.event == SDL_WINDOWEVENT_RESIZED )
             {
                 draw_texture( ) ;
             }
+            
+            // increases a counter each time a keypress is detected
+            else if ( event.type == SDL_KEYDOWN ) 
+            {
+                int key = map_key( event.key.keysym.sym ) ;
+                //printf( "%d\n", key ) ;
+                if( key != NOT_IN_KEYPAD ) keys[ key ]++  ;
+            }
+
+            else if (event.type == SDL_KEYUP) 
+            {  
+                int key = map_key(event.key.keysym.sym);
+                
+                if (key != NOT_IN_KEYPAD) 
+                {
+                    keys[key] = 0;  // Set to 0 when released
+                }
+            }
+
         }
 
         // executes a batch of instructions
-        for ( int i = 0 ; i < 10 ; i++ ) id_exe_st( if_st( ) )          ;
+        for ( int i = 0 ; i < 10 ; i++ ) 
+        {
+            id_exe_st( if_st( ) )             ;
+            if ( DEL_TIMER > 0 ) DEL_TIMER -- ; 
+            if ( SND_TIMER > 0 ) SND_TIMER -- ;
+        }
+
         
         // forces 60 Hz drawing
         curr_timestamp = SDL_GetTicks( )    ; 

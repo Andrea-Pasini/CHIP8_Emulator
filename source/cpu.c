@@ -64,6 +64,9 @@ opcode_t OPCEX[ 0xE ]   ;
 opcode_t OPCFX[ 0xE ]   ;
 opcode_t OPCF5[ 0x7 ]   ;
 
+// keypress array
+uint8_t  keys[ 16 ]     ;
+
 // window variable (defined in the display module)
 extern win_ren_t window ;
 
@@ -114,7 +117,11 @@ void stack_push( uint16_t val )
 // returns the value on top of the stack
 uint16_t stack_pop ( void ) 
 {
-    return STK.cells[ STK.sp-- ] ; 
+    if( STK.sp > 0 )
+        return STK.cells[ --STK.sp ] ;
+    
+    else return 0x200 ;
+    
 }
 
 
@@ -192,7 +199,8 @@ void load_rom( char* path )
 // reads 2 bytes from memory and returns them as a 16-BIT number
 uint16_t if_st( void ) 
 {
-    uint16_t instruction = ( RAM[ PC++ ] << 8 ) + RAM[ PC++ ] ; 
+    uint16_t instruction = ( RAM[ PC++ ] << 8 ) + RAM[ PC++ ] ;
+    //printf("ISTRUZIONE: %04x\n",instruction) ; 
     return   instruction                                      ; 
 }
 
@@ -463,39 +471,53 @@ void OPC8_3( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uin
 // adds Vy to Vx
 void OPC8_4( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
-    REG[ X_HB ] += REG[ Y_HB ] ;
+    
+    uint16_t sum = REG[ X_HB ] + REG[ Y_HB ] ; 
+    REG[ X_HB ]  = sum                       ;
+    REG[ 0x0F ]  = ( sum > 0xFF )            ;
+    
+
     return ;
 }
 
 // sets Vx to the result of Vx - Vy
 void OPC8_5( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
-    REG[ X_HB ] -= REG[ Y_HB ] ;
+    
+    uint8_t flag = ( REG[ X_HB ] >= REG[ Y_HB ] ) ;
+    REG[ X_HB ] -= REG[ Y_HB ]                    ;
+    REG[ 0x0F ]  = flag                           ;
+    
     return ;
 }
 
 // ambiguous: sets Vx to Vx (or Vy) shifted to the right once
 void OPC8_6( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
-    REG[ X_HB ] = REG[ Y_HB ]           ; // optional line!!
-    REG[ 0xF  ] = REG[ X_HB ] &  0x0001 ;
-    REG[ X_HB ] = REG[ X_HB ] >> 1      ;
+    uint8_t shifted = REG[ X_HB ] & 0x1 ;
+    // REG[ X_HB ] = REG[ Y_HB ]        ; // optional line!!
+    REG[ X_HB ] = REG[ X_HB ] >> 1   ;
+    REG[ 0xF  ] = shifted            ;
     return ;
 }
 
 // sets Vx to the result of Vy - Vx
 void OPC8_7( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
-    REG[ X_HB ] = REG[ Y_HB ] - REG[ X_HB ] ;
+    uint8_t flag = ( REG[ Y_HB ] >= REG[ X_HB ] ) ;
+    REG[ X_HB ]  = REG[ Y_HB ] - REG[ X_HB ]      ;
+    REG[ 0x0F ]  = flag                           ;
+    
     return ;
 }
 
 // ambiguous: sets Vx to Vx (or Vy) shifted to the left once
 void OPC8_E( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
-    REG[ X_HB ] = REG[ Y_HB ]           ; // optional line!!
-    REG[ 0xF  ] = REG[ X_HB ] &  0x0001 ;
-    REG[ X_HB ] = REG[ X_HB ] << 1      ;
+    //REG[ X_HB ] = REG[ Y_HB ]           ; // optional line!!
+    uint8_t flag = REG[ X_HB ] &  0x80 ;
+    REG[ X_HB ]  = REG[ X_HB ] << 1    ;
+    REG[ 0xF  ]  = flag >> 7           ;
     return ;
 }
 
@@ -578,6 +600,11 @@ void OPC_D( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint
 // to be implemented
 void OPCE_1( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+     if ( keys[ REG[ X_HB ] ] == 0 )
+    {
+        PC += 2               ;
+    }
+    
     return ;
 }
 
@@ -585,6 +612,12 @@ void OPCE_1( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uin
 // to be implemented
 void OPCE_E( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
+    if ( keys[ REG[ X_HB ] ] > 0 )
+    {
+        keys[ REG[ X_HB ] ] = 0 ;
+        PC += 2                 ;
+    }
+    
     return ;
 }
 
@@ -596,7 +629,7 @@ void OPCF_3( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uin
 
     for( int i = 0 ; i < 3 ; i++ )
     {
-        RAM[ I_REG + i ] = val % 10 ;
+        RAM[ I_REG + 2 - i ] = val % 10 ;
         val /= 10                   ; 
     }
     return                          ;
@@ -646,14 +679,30 @@ void OPCF_8( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uin
 // sets the I register value to the address of the character selected
 void OPCF_9( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
-    I_REG = 0x050 + ( REG[ X_HB ] * 5 ) ;
+    
+  
+    I_REG = 0x050 + ( ( REG[ X_HB ] & 0xF ) * 5 ) ;
     return ;
 }
 
-// to be implemented
+// halts the CPU until a key is pressed, then stores the value in the X register
 void OPCF_A( uint16_t F_HB , uint16_t X_HB , uint16_t Y_HB , uint16_t N_HB , uint16_t NN_HB , uint16_t NNN_HB )
 {
-    return ;
+    // saves the last key pressed in the X register
+    for( int i = 0 ; i < 16 ; i++ )
+    {
+        if ( keys[i] == 1 ) 
+        {
+            REG[ X_HB ] = i ;
+            keys[ i ]--     ; 
+            return          ;
+        }
+    }
+
+    // if no key has been pressed don't increase the program conunter
+    PC -= 2 ; 
+    return  ;
+
 }
 
 // adds Vx to the I register 

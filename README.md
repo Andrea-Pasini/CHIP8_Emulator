@@ -1,11 +1,21 @@
 # 💾 CHIP-8 Emulator 👾
-### What works
-In the newest version, the emulator has been updated with a GUI implemented with the SDL2 library. 
+### How to use 📖
+In order to run this emulator, you must do as follows:
+- Clone the repository and open it in a terminal emulator
+- Install the SDL2 library
+- Compile the program with the following command:
+```console
+$> make
+```
+- Download ROMs and store them in the /roms folder
+- Run the emulator with this command:
+ ```console
+$> build/chip8 <rom_name_without_extension>
+```
 
-### Next steps
-Now that the CPU module is almost completely working, the next milestones for this project are the following:
-- Making the drawing function faster
-- Implementing a mechanism for rom-selection 
-- Making the emulator capable to detect inputs
+### Next steps 🔜
+The next milestones for this project are the following:
+- Making the drawing function faster (right now the emulator runs faster in smaller windows )
 - Implementing a sound module
+
 

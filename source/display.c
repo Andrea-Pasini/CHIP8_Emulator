@@ -72,6 +72,9 @@ int create_window( int width , int height , uint32_t flags )
         return 0                                              ; 
     }
 
+    // makes the window monochrome
+    clear_window( )                                           ;
+
     return 1 ;
 }
 
@@ -90,7 +93,7 @@ void destroy_window( )
 void clear_window( void )
 {
     // sets the drawing color to #0000FF
-    SDL_SetRenderDrawColor( window.ren , 0 , 0 , 0xFF , 1 ) ;
+    SDL_SetRenderDrawColor( window.ren , 0 , 0 , 0xAA , 1 ) ;
 
     // fills the buffer with #0000FF
     SDL_RenderClear       ( window.ren                    ) ; 

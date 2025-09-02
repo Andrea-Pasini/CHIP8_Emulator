@@ -1,3 +1,7 @@
+/*
+        CHIP-8 EMULATOR
+*/
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,70 +19,56 @@
 #define TERMINATED 0
 #define RUNNING    1
 
-extern win_ren_t window       ;
-extern uint16_t  SND_TIMER    ;
-extern uint16_t  DEL_TIMER    ;
-extern uint8_t   keys[ 16 ]   ;
+/*********************************************************/
+/*********************************************************/
+
+extern win_ren_t window         ;
+extern uint16_t  SND_TIMER      ;
+extern uint16_t  DEL_TIMER      ;
+extern uint8_t   keys[ 16 ]     ;
+extern uint8_t   emulator_state ;
+
+/*********************************************************/
+/*********************************************************/
+
 
 int main( int argc , char** argv )
 {
+    /*
+        The first part of the program creates
+        the window, then initializes the emulator
+        and loads the rom which name is found in 
+        argv[ 1 ].
+    */
+    
     // creates the window and handles related errors
-    if ( !create_window( 640 , 320 , 0 )  ) exit( ERROR ) ;
-
-    // makes the window monochrome
-    clear_window( )                                       ;
+    if ( !create_window( 640 , 320 , 0 )  ) 
+        exit( ERROR )                             ;
 
     // destroys the window when the program ends
-    atexit( destroy_window )                              ;
-    
-    // creates the random number generator seed
-    srand( time( NULL ) )                                 ;
+    atexit     ( destroy_window )                 ;
     
     // prepares the emulator to run a game
-    init_chip8( "/home/andrea/Projects/CHIP-8/roms/Soccer.ch8" ) ;
-    
-    int       past_timestamp , curr_timestamp ;
-    int       emulator_state = RUNNING        ;
-    SDL_Event event                           ;
+    init_chip8 ( rom_selection( argv[1] ) )       ;
 
-    past_timestamp = SDL_GetTicks( )          ; 
 
-    // main loop
+    // initializes the timestamps used to 
+    // allow 60 Hz drawing 
+    int past_timestamp = SDL_GetTicks( )          ; 
+    int curr_timestamp                            ;
+
+
+    /*
+        The main cycle starts executing batches
+        of 10 instructions, then checks if the 
+        display needs to be redrawn. This until 
+        the window gets closed. 
+    */
+
     while( emulator_state == RUNNING )
     {
-
-        // temporary event handling
-        while( SDL_PollEvent( &event ) )
-        {
-            // handles the termination input
-            if (   event.type == SDL_QUIT ) emulator_state = TERMINATED ;
-
-            // resizes the window
-            else if ( ( event.type         == SDL_WINDOWEVENT         ) && 
-                        event.window.event == SDL_WINDOWEVENT_RESIZED )
-            {
-                draw_texture( ) ;
-            }
-            
-            // increases a counter each time a keypress is detected
-            else if ( event.type == SDL_KEYDOWN ) 
-            {
-                int key = map_key( event.key.keysym.sym ) ;
-                //printf( "%d\n", key ) ;
-                if( key != NOT_IN_KEYPAD ) keys[ key ]++  ;
-            }
-
-            else if (event.type == SDL_KEYUP) 
-            {  
-                int key = map_key(event.key.keysym.sym);
-                
-                if (key != NOT_IN_KEYPAD) 
-                {
-                    keys[key] = 0;  // Set to 0 when released
-                }
-            }
-
-        }
+        // handles game-inputs and window related events
+        input_handling( ) ;
 
         // executes a batch of instructions
         for ( int i = 0 ; i < 10 ; i++ ) 
@@ -87,15 +77,14 @@ int main( int argc , char** argv )
             if ( DEL_TIMER > 0 ) DEL_TIMER -- ; 
             if ( SND_TIMER > 0 ) SND_TIMER -- ;
         }
-
         
         // forces 60 Hz drawing
-        curr_timestamp = SDL_GetTicks( )    ; 
+        curr_timestamp = SDL_GetTicks( )      ; 
 
         if ( curr_timestamp - past_timestamp >= 16 )
         {
-            draw_texture( )                 ;
-            past_timestamp = curr_timestamp ; 
+            draw_texture( )                   ;
+            past_timestamp += 16              ; 
         }
 
     }

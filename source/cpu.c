@@ -77,11 +77,15 @@ void init_chip8( char* rom )
 {
     // clears the screen (not every rom does that on its own)
     OPC0_0     ( 0 , 0 , 0 , 0 , 0 , 0 ) ; 
+
+    // creates the seed for number generation
+    srand      ( time( NULL )          ) ;
     
     // initializes the emulator
     ram_init   (     ) ;
     load_rom   ( rom ) ;
     stack_init (     ) ;
+    // creates the random number generator seed
 }
 
 /*********************************************************/
@@ -175,7 +179,10 @@ void load_rom( char* path )
 
     if ( ROM == NULL ) 
     {
-        fprintf( stderr , "ROM not found\n" ) ;
+        fprintf( stderr , "\nERROR:   ROM not found\n" )                      ;
+        fprintf( stderr , "USAGE:   ./build/chip8 <rom_name>\n" )             ;
+        fprintf( stderr , "NOTE :   The rom should be stripped of .ch8\n\n" ) ;
+
         exit( 5 )                               ;
     }
 

@@ -8,7 +8,17 @@
 #include <SDL2/SDL.h>
 
 #include "input.h"
+#include "cpu.h"
 
+#define RUNNING         1
+#define NOT_IN_KEYPAD (-1)
+#define TERMINATED      0
+
+extern uint8_t keys[ 16 ]        ;
+SDL_Event event                  ;
+uint8_t emulator_state = RUNNING ;
+
+// maps every key to a chip-8 button
 uint8_t map_key( uint32_t sdl_key )
 {
     switch( sdl_key )
@@ -55,3 +65,51 @@ uint8_t map_key( uint32_t sdl_key )
 
     }
 }
+
+
+// handles game-inputs and window related events
+void input_handling( void )
+{
+
+    // event handling
+    while( SDL_PollEvent( &event ) )
+    {
+        // handles the termination input
+        if (   event.type == SDL_QUIT ) emulator_state = TERMINATED ;
+
+        // resizes the window
+        else if ( ( event.type         == SDL_WINDOWEVENT         ) && 
+                    event.window.event == SDL_WINDOWEVENT_RESIZED )
+        {
+            draw_texture( ) ;
+        }
+        
+        // increases a counter each time a keypress is detected
+        else if ( event.type == SDL_KEYDOWN ) 
+        {
+            int key = map_key( event.key.keysym.sym ) ;
+            if( key != NOT_IN_KEYPAD ) keys[ key ]++  ;
+        }
+
+        else if (event.type == SDL_KEYUP) 
+        {  
+            int key = map_key(event.key.keysym.sym);
+            
+            if (key != NOT_IN_KEYPAD) 
+            {
+                keys[key] = 0;  // Set to 0 when released
+            }
+        }
+
+    }
+}
+
+char* rom_selection( char* program_name )
+{
+    // creates the path
+    static char path[ 10 ] = "./roms/"  ;
+    strcat( path , program_name )       ; 
+    strcat( path , ".ch8"       )       ;
+
+    return  path                        ;
+}  
